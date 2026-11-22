@@ -1,0 +1,22 @@
+DISPLAY:
+[PROCESS] \Device\HarddiskVolume3\Program Files\VideoPlayer\video.exe
+Video playback is active.
+
+SYSTEM:
+[DRIVER] \FileSystem\srvnet
+An active remote client has recently sent requests to this machine.
+[PROCESS] \Device\HarddiskVolume3\Windows\System32\audiodg.exe
+Audio is currently in use.
+
+AWAYMODE:
+None.
+
+EXECUTION:
+[PROCESS] \Device\HarddiskVolume3\Program Files\Tools\worker.exe
+Performing work.
+
+PERFBOOST:
+None.
+
+ACTIVELOCKSCREEN:
+None.

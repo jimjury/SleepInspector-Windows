@@ -1,0 +1,20 @@
+DISPLAY:
+无。
+
+SYSTEM:
+[进程] \Device\HarddiskVolume4\Program Files\music.exe
+正在播放音频。
+[驱动程序] 旧版内核调用方
+内核请求。
+
+AWAYMODE:
+无。
+
+EXECUTION:
+无。
+
+PERFBOOST:
+无。
+
+ACTIVELOCKSCREEN:
+无。

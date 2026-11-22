@@ -1,0 +1,17 @@
+DISPLAY:
+None.
+
+SYSTEM:
+None.
+
+AWAYMODE:
+None.
+
+EXECUTION:
+None.
+
+PERFBOOST:
+None.
+
+ACTIVELOCKSCREEN:
+None.

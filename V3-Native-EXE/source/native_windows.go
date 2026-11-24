@@ -541,7 +541,7 @@ func normalizeTarget(requestPath string) (string, error) {
 }
 
 var protectedNames = map[string]bool{
-	"system": true, "system idle process": true, "registry": true, "csrss.exe": true, "smss.exe": true, "wininit.exe": true, "winlogon.exe": true, "lsass.exe": true, "services.exe": true, "svchost.exe": true, "fontdrvhost.exe": true, "dwm.exe": true, "taskhostw.exe": true, "sihost.exe": true, "explorer.exe": true, "conhost.exe": true, "powershell.exe": true, "pwsh.exe": true, "cmd.exe": true, "taskmgr.exe": true, "audiodg.exe": true, "spoolsv.exe": true, "searchindexer.exe": true, "wmiprvse.exe": true, "runtimebroker.exe": true, "shellexperiencehost.exe": true, "startmenuexperiencehost.exe": true, "sleepinspector_v1.5_windows_x64.exe": true, "sleepinspector_v1.6_windows_x64.exe": true, "sleepinspector_v1.7_windows_x64.exe": true,
+	"system": true, "system idle process": true, "registry": true, "csrss.exe": true, "smss.exe": true, "wininit.exe": true, "winlogon.exe": true, "lsass.exe": true, "services.exe": true, "svchost.exe": true, "fontdrvhost.exe": true, "dwm.exe": true, "taskhostw.exe": true, "sihost.exe": true, "explorer.exe": true, "conhost.exe": true, "powershell.exe": true, "pwsh.exe": true, "cmd.exe": true, "taskmgr.exe": true, "audiodg.exe": true, "spoolsv.exe": true, "searchindexer.exe": true, "wmiprvse.exe": true, "runtimebroker.exe": true, "shellexperiencehost.exe": true, "startmenuexperiencehost.exe": true, "sleepinspector_v1.5_windows_x64.exe": true, "sleepinspector_v1.6_windows_x64.exe": true, "sleepinspector_v1.7_windows_x64.exe": true, "sleepinspector_v1.8_windows_x64.exe": true,
 }
 
 func protectReason(path string) string {

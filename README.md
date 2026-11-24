@@ -16,7 +16,7 @@
 
 - **V1：** 下载 `V1-CMD/Sleep_Blocker_Check.cmd`，放到桌面双击，允许管理员权限；按 **R** 重新检测，按 **Q** 退出。
 - **V2：** 保留 `V2-PowerShell-GUI` 文件夹中的 **4 个文件**，双击 `Start_Sleep_Inspector.cmd`；允许管理员权限后，在窗口中查看或操作。不要只取出启动文件。
-- **V3（推荐）：** 下载 `V3-Native-EXE/SleepInspector.exe`，放到桌面直接双击；允许管理员权限。无需解压其他依赖文件，也无需安装 Python。
+- **V3（推荐，当前程序版本 V1.8）：** 下载 `V3-Native-EXE/SleepInspector.exe`，放到桌面直接双击；允许管理员权限。无需解压其他依赖文件，也无需安装 Python。
 
 > 运行环境：Windows 10/11。V3 为 **64 位**版本。V2 使用 Windows 自带的 Windows PowerShell 5.1 和 .NET 图形组件。V3 无需 PowerShell 来绘制窗口。首次启动可能出现 Windows 安全提示；请确认文件来源再决定是否运行。
 
@@ -29,6 +29,15 @@
 - **其他类型：** 例如执行请求、离开模式请求，按原始结果辅助判断。
 
 V2 / V3 还可以查看上次唤醒来源、唤醒定时器、复制或保存检测报告。对于可可靠识别的**普通程序**，可在确认后尝试正常关闭；若需要强制结束，将再次询问。**服务、驱动和关键系统进程不提供一键结束。**
+
+### V3 原生 EXE（程序版本 V1.8）
+
+- 选择 **PROCESS**：在确认目标 PID 与路径后，优先正常关闭程序；只有二次确认后才尝试强制结束。
+- 选择 **Realtek 等音频 DRIVER**：按钮显示“排查音频占用”。经确认后打开 Windows 音量合成器和任务管理器，由使用者自行识别并退出可能占用音频的应用，再刷新检测。
+- 选择 **其他 DRIVER**：可打开设备管理器了解驱动状态。
+- 选择 **SERVICE**：可打开服务管理器核对名称、依赖和状态。
+
+驱动和服务入口**只负责辅助排查**，不会直接禁用驱动、停止服务、运行 `powercfg /requestsoverride`，也不保证打开工具后阻止请求立即消失。
 
 ## 使用前请注意
 
@@ -50,9 +59,20 @@ V2-PowerShell-GUI/
   SleepInspector.Actions.ps1        # 程序匹配与安全关闭
 V3-Native-EXE/
   SleepInspector.exe                # 直接运行的 Windows 64 位程序
-  source/                           # Go 源码（需要 Go 1.23 才可自行编译）
+  source/                           # V1.8 Go 源码与测试（Go 1.23）
 ```
 
 V3 的 EXE 可直接使用；`source/` 仅面向希望阅读或重新构建程序的开发者。
 
 **目标效果：** 从桌面双击一次即可了解当前是什么阻止了自动休眠；必要时在图形界面安全地处理可识别的普通程序，并重新检测结果。
+
+## V3 自行构建与测试
+
+在 `V3-Native-EXE/source/` 中执行：
+
+```powershell
+go test ./...
+go build -trimpath -ldflags="-s -w -H=windowsgui" -o SleepInspector.exe .
+```
+
+Windows 64 位的下载程序位于 `V3-Native-EXE/SleepInspector.exe`；源码、测试样例及安全规则同在该目录。发布文件经过交叉编译与自动化检查，但**V1.8 的音频排查按钮尚未经过真实 Windows 桌面点击验收**。

@@ -104,12 +104,13 @@ type appUI struct {
 	pendingForced                                                             *closeForcedMsg
 	populating, selectionPending                                              bool
 	lastDetailText, lastLogText                                               string
+	lastActionTitle                                                           string
 	mu                                                                        sync.Mutex
 }
 
 var ui appUI
 var childMenu = map[int]buttonCfg{
-	ctlScan: {"立即检测 (F5)", "primary", -1}, ctlClose: {"关闭所选程序", "danger", -1}, ctlCopy: {"复制完整报告", "subtle", -1}, ctlSave: {"保存日志", "subtle", -1}, ctlHelp: {"使用说明", "subtle", -1},
+	ctlScan: {"立即检测 (F5)", "primary", -1}, ctlClose: {"处理所选项", "danger", -1}, ctlCopy: {"复制完整报告", "subtle", -1}, ctlSave: {"保存日志", "subtle", -1}, ctlHelp: {"使用说明", "subtle", -1},
 	ctlTabRaw: {"原始请求", "tab", 0}, ctlTabWake: {"上次唤醒", "tab", 1}, ctlTabTimers: {"唤醒定时器", "tab", 2}, ctlTabReport: {"完整报告", "tab", 3},
 }
 
@@ -422,9 +423,7 @@ func updateDetails() {
 		if item.Detail != "" {
 			t += "\r\n\r\n补充信息：\r\n" + item.Detail
 		}
-		if item.Kind != "PROCESS" {
-			t += "\r\n\r\n该项目不是普通进程，不提供结束操作。"
-		}
+		t += "\r\n\r\n处理建议：\r\n" + actionDescription(classifyAction(item))
 		text = t
 	}
 	// Avoid needlessly resetting the read-only EDIT control on every notification.
@@ -434,7 +433,25 @@ func updateDetails() {
 		call(pInvalidateRect, ui.details, 0, 1)
 		ui.lastDetailText = text
 	}
-	enabled(ui.buttons[ctlClose], ok && item.Kind == "PROCESS" && !ui.closing && !ui.scanning)
+	action := ActionNone
+	if ok {
+		action = classifyAction(item)
+	}
+	title := actionTitle(action)
+	if ui.lastActionTitle != title {
+		cfg := childMenu[ctlClose]
+		cfg.Title = title
+		if action == ActionCloseProcess {
+			cfg.Kind = "danger"
+		} else {
+			cfg.Kind = "subtle"
+		}
+		childMenu[ctlClose] = cfg
+		ui.lastActionTitle = title
+		// Owner-drawn buttons use childMenu text; redraw only the affected button.
+		invalidate(ui.buttons[ctlClose])
+	}
+	enabled(ui.buttons[ctlClose], action != ActionNone && !ui.closing && !ui.scanning)
 	// No parent invalidation: listview paint notifications must never repaint the whole UI.
 }
 func populateList() {
@@ -552,8 +569,13 @@ func requestClose() {
 		return
 	}
 	item, ok := selectedItem()
-	if !ok || item.Kind != "PROCESS" {
-		messagebox(ui.hwnd, "请先选中一个“程序 / 进程”阻止项。驱动和服务不能从此界面结束。", "安全提示", MB_ICONINFORMATION)
+	if !ok {
+		messagebox(ui.hwnd, "请先在检测结果中选中一条阻止项。", "请选择项目", MB_ICONINFORMATION)
+		return
+	}
+	action := classifyAction(item)
+	if action != ActionCloseProcess {
+		inspectNonProcess(item, action)
 		return
 	}
 	path, err := normalizeTarget(item.Name)
@@ -626,7 +648,7 @@ func onCommand(id int, notify uint16) {
 			invalidate(ui.hwnd)
 		}
 	case ctlHelp:
-		messagebox(ui.hwnd, "SleepInspector V1.7  /  使用说明\n\n1. 点击“立即检测”查看当前的电源请求。\n2. SYSTEM 会阻止自动休眠，DISPLAY 影响屏幕关闭。\n3. 选中普通程序，可以查看完整路径，并选择“关闭所选程序”。\n4. 关闭前会按完整程序路径和 PID 启动时间核验，优先正常退出；强制结束须再次确认。\n5. 下方可查看原始输出、上次唤醒、唤醒定时器以及完整报告。\n\n本工具不会修改电源计划，不会自动结束程序，驱动和服务不支持直接结束。", "使用说明", MB_ICONINFORMATION)
+		messagebox(ui.hwnd, "SleepInspector V1.8  /  使用说明\n\n1. 点击“立即检测”查看当前的电源请求。\n2. SYSTEM 会阻止自动休眠，DISPLAY 影响屏幕关闭。\n3. 选中普通程序，使用“关闭所选程序”，在确认与核验后尝试正常关闭。\n4. 选中音频驱动（例如 Realtek），使用“排查音频占用”，打开 Windows 音量合成器与任务管理器，查找可能使用音频的应用并自行关闭。\n5. 选中其他驱动或服务，可查看安全的管理入口。\n6. 下方保留原始输出、上次唤醒、唤醒定时器与完整报告。\n\n重要：DRIVER 不是 PROCESS，本工具不会强行结束驱动、停用音频设备或更改 powercfg 请求豁免。", "使用说明", MB_ICONINFORMATION)
 	case ctlFilter:
 		if notify == CBN_SELCHANGE {
 			ui.filterChoice = int(send(ui.filter, CB_GETCURSEL, 0, 0))
@@ -930,7 +952,7 @@ func main() {
 	}
 	call(pSetProcessDPIAware)
 	inst := call(pGetModuleHandle, 0)
-	className := utfPtr("SleepInspectorMainV16")
+	className := utfPtr("SleepInspectorMainV18")
 	wc := windowClass{Style: 3, WndProc: syscall.NewCallback(appWndProc), Instance: inst, Cursor: call(pLoadCursor, 0, IDC_ARROW), ClassName: className}
 	wc.CbSize = uint32(unsafe.Sizeof(wc))
 	if call(pRegisterClass, uintptr(unsafe.Pointer(&wc))) == 0 {
@@ -941,7 +963,7 @@ func main() {
 	cc := windowClass{WndProc: syscall.NewCallback(chooseProc), Instance: inst, Cursor: call(pLoadCursor, 0, IDC_ARROW), ClassName: ccName}
 	cc.CbSize = uint32(unsafe.Sizeof(cc))
 	call(pRegisterClass, uintptr(unsafe.Pointer(&cc)))
-	hwnd := call(pCreateWindow, WS_EX_APPWINDOW, uintptr(unsafe.Pointer(className)), sPtr("Windows 休眠阻止项检测器 V1.7  |  SleepInspector"), WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_THICKFRAME|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE, uintptr(110), uintptr(60), uintptr(1360), uintptr(920), 0, 0, inst, 0)
+	hwnd := call(pCreateWindow, WS_EX_APPWINDOW, uintptr(unsafe.Pointer(className)), sPtr("Windows 休眠阻止项检测器 V1.8  |  SleepInspector"), WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_THICKFRAME|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE, uintptr(110), uintptr(60), uintptr(1360), uintptr(920), 0, 0, inst, 0)
 	if hwnd == 0 {
 		messagebox(0, "Windows 无法创建主窗口。", "程序启动失败", MB_ICONERROR)
 		return
